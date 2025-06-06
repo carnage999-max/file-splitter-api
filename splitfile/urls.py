@@ -4,7 +4,7 @@ from .views import FileViewSet
 
 router = DefaultRouter()
 
-router.register('split-csv', FileViewSet, basename='split_csv')
+router.register('', FileViewSet, basename='csv_utils')
 
 urlpatterns = [
     path('', include(router.urls))
