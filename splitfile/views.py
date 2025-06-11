@@ -2,9 +2,6 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 from rest_framework.response import Response
 from django.http import FileResponse, HttpResponseForbidden
-from django.utils import timezone
-from datetime import timedelta
-from users.models import CustomUser
 from .models import File
 from .serializers import FileSerializer, ConvertSerializer
 from utils.utils import CSVSplitter, uploading_to_supabase, create_bucket
@@ -29,7 +26,7 @@ class FileViewSet(ModelViewSet):
     def get_queryset(self):
         if self.request.user.is_authenticated:
             return self.queryset.filter(user=self.request.user)
-        return self.queryset
+        return self.queryset.filter(user=None)
     
     def get_permissions(self):
         if self.action not in ['create']:
@@ -123,7 +120,6 @@ class FileViewSet(ModelViewSet):
                     return Response({'error uploading to storage bucket': str(e)}, status=status.HTTP_400_BAD_REQUEST)
                 
             signed_url = supabase.storage.from_(bucket_name).create_signed_url(supabase_path, 3600)["signedURL"]
-            print(user)
             #save information to db
             serializer.save(user=request.user if request.user.is_authenticated else None, file=file.name, zipped_file_path=supabase_path, bucket_name=bucket_name, operation='convert')
             return Response({"download-url": signed_url}, status=status.HTTP_200_OK)

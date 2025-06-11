@@ -72,7 +72,7 @@ ROOT_URLCONF = 'file_slicer.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR/'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -178,8 +178,8 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '5/hour',
         'user': '10/hour',
-        'file_processing_anon': '3/hour',
-        'file_processing_user': '10/hour'
+        'file_processing_anon': '10/hour',
+        'file_processing_user': '100/hour'
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }

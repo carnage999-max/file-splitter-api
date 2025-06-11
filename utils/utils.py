@@ -194,7 +194,7 @@ def uploading_to_supabase(bucket_name, file, path):
                     )
     
 def remove_files():
-    dead_time = timezone.now() - timedelta(minutes=2)
+    dead_time = timezone.now() - timedelta(hours=1)
     files = File.objects.filter(created_at__lt=dead_time)
     for file in files:
         try:

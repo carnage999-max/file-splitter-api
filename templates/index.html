@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSV Utility API</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-light">
+  <div class="container py-5">
+    <h1 class="display-4">CSV Utility API</h1>
+    <p class="lead">A lightweight RESTful API for splitting and converting CSV files. Built with Django REST Framework and powered by Supabase Storage.</p>
+    <hr>
+
+    <h2 class="mt-5">✨ Features</h2>
+    <ul>
+      <li>🔐 JWT-based Authentication (via SimpleJWT)</li>
+      <li>📤 Upload CSV and split by:
+        <ul>
+          <li><strong>Line count</strong></li>
+          <li><strong>File size (MB)</strong></li>
+        </ul>
+      </li>
+      <li>🔁 Convert CSV to JSON and receive a downloadable ZIP</li>
+      <li>☁️ Upload output to <strong>Supabase Storage</strong></li>
+      <li>🔗 Secure, expiring download links</li>
+      <li>🧹 Scheduled Supabase cleanup endpoint</li>
+      <li>🧪 DRF Spectacular-powered auto docs (<code>/api/schema/swagger-ui/</code>)</li>
+    </ul>
+
+    <h2 class="mt-5">🛠️ Technologies</h2>
+    <ul>
+      <li>Python, Django, Django REST Framework</li>
+      <li>Supabase Storage</li>
+      <li>Cron job</li>
+      <li>PostgreSQL/MySQL (flexible)</li>
+      <li>DRF Spectacular (for OpenAPI)</li>
+    </ul>
+
+    <h2 class="mt-5">📦 API Endpoints</h2>
+    <p><strong>Base URL:</strong> <a href="https://file-splitter-api.onrender.com/">https://file-splitter-api.onrender.com/</a></p>
+
+    <h3 class="mt-4">🔐 Authentication</h3>
+    <div class="table-responsive">
+      <table class="table table-dark table-bordered">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>POST</td><td><code>/users/register/</code></td><td>Register a user</td></tr>
+          <tr><td>POST</td><td><code>/users/login/</code></td><td>Login and get JWT</td></tr>
+          <tr><td>GET</td><td><code>/users/user/</code></td><td>Get logged-in user (JWT required)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="mt-4">📂 File Operations</h3>
+    <p><strong>All endpoints are prefixed with <code>/files/</code></strong></p>
+
+    <h5>✅ Upload & Split CSV</h5>
+    <p><strong>POST</strong> <code>/files/split-csv/</code></p>
+    <pre><code>multipart/form-data:
+- file: CSV file
+- lines_per_file (int) OR size_per_file (int)</code></pre>
+    <p>Returns:</p>
+    <pre><code>{
+  "download-url": "<Signed Supabase ZIP URL>"
+}</code></pre>
+
+    <h5>🔁 Convert CSV to JSON (zipped)</h5>
+    <p><strong>POST</strong> <code>/files/convert-csv/</code></p>
+    <pre><code>multipart/form-data:
+- file: CSV file</code></pre>
+    <p>Returns:</p>
+    <pre><code>{
+  "download-url": "<Signed Supabase ZIP URL>"
+}</code></pre>
+
+    <h5>⬇️ Download File</h5>
+    <p><strong>GET</strong> <code>/files/&lt;id&gt;/download-file/</code><br><em>Requires JWT token</em></p>
+
+    <h5>🧹 Cleanup Supabase Buckets</h5>
+    <p><strong>GET</strong> <code>/files/cleanup-files/</code></p>
+    <ul>
+      <li>Cron-protected via <code>X-Cron-Token</code> header</li>
+      <li>Requires a secret token from <code>.env</code></li>
+    </ul>
+    <p>Returns:</p>
+    <pre><code>{
+  "success": "Files cleaned successfully"
+}</code></pre>
+
+    <h2 class="mt-5">🔐 Auth Flow (JWT)</h2>
+    <ol>
+      <li><strong>Register</strong>: <code>POST /users/register/</code></li>
+      <li><strong>Login</strong>: <code>POST /users/login/</code><br><small>Returns <code>access_token</code> and <code>refresh_token</code></small></li>
+      <li>Use <code>Authorization: Bearer &lt;access_token&gt;</code> on protected routes</li>
+    </ol>
+
+    <h2 class="mt-5">⚙️ Dev Setup</h2>
+    <pre><code>git clone https://github.com/carnage999-max/file-splitter-api
+cd file-splitter-api
+
+# Setup virtualenv
+python -m venv venv
+source venv/bin/activate 
+
+# Install dependencies
+pip install -r requirements.txt
+
+## Using pipenv
+
+### Activate virtual environment
+pipenv shell
+
+### Install requirements
+pipenv install
+
+# Setup environment variables
+touch .env
+
+# Run migrations
+python manage.py migrate
+
+# Run dev server
+python manage.py runserver</code></pre>
+
+    <h2 class="mt-5">📖 Interactive Docs</h2>
+    <p>Once running, visit: <code>http://localhost:8000/api/schema/swagger-ui/</code></p>
+
+    <h2 class="mt-5">🧪 Sample Usage (Python + Requests)</h2>
+    <pre><code>import requests
+
+url = "https://file-splitter-api.onrender.com/files/split-csv/"
+headers = {
+    "Authorization": "Bearer YOUR_TOKEN"
+}
+files = {
+    "file": open("data.csv", "rb"),
+}
+data = {
+    "lines_per_file": 1000
+}
+res = requests.post(url, headers=headers, files=files, data=data)
+print(res.json())</code></pre>
+
+    <h2 class="mt-5">👤 Author</h2>
+    <p><strong>Ezekiel Okebule</strong>, Backend Engineer</p>
+    <p>
+      🔗 <a href="https://linkedin.com/in/ezekiel-okebule" class="link-light">LinkedIn</a><br>
+      🌐 <a href="https://ezekiel-okebule.vercel.app" class="link-light">ezekiel-okebule.vercel.app</a>
+    </p>
+
+    <h2 class="mt-5">📝 License</h2>
+    <p>MIT</p>
+  </div>
+</body>
+</html>
