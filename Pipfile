@@ -16,6 +16,7 @@ djangorestframework-simplejwt = "*"
 celery = "*"
 drf-spectacular = "*"
 django-cors-headers = "*"
+gunicorn = "*"
 
 [dev-packages]
 
