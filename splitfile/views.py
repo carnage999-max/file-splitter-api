@@ -148,6 +148,6 @@ class FileViewSet(ModelViewSet):
     
     @action(methods=['get'], url_path='cleanup-files', detail=False)
     def clean_supabase_buckets(self, request):
-        if request.headers.get("X-Cron_Token") != os.getenv("CRON_SECRET_TOKEN"):
+        if request.headers.get("X-Cron-Token") != os.getenv("CRON_SECRET_TOKEN"):
             return HttpResponseForbidden("Forbidden")
         remove_files()
