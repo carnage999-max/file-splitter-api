@@ -10,6 +10,12 @@ supabase = "*"
 mysqlclient = "*"
 python-dotenv = "*"
 requests = "*"
+psycopg2-binary = "*"
+python-decouple = "*"
+djangorestframework-simplejwt = "*"
+celery = "*"
+drf-spectacular = "*"
+django-cors-headers = "*"
 
 [dev-packages]
 

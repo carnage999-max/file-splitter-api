@@ -1,23 +1,43 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 from rest_framework.response import Response
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponseForbidden
+from django.utils import timezone
+from datetime import timedelta
+from users.models import CustomUser
 from .models import File
 from .serializers import FileSerializer, ConvertSerializer
-from utils import CSVSplitter, uploading_to_supabase, create_bucket
+from utils.utils import CSVSplitter, uploading_to_supabase, create_bucket
 from rest_framework.parsers import MultiPartParser
 import os
 from django.conf import settings
 from uuid import uuid4
 import requests
-from rest_framework.decorators import action
-from utils import supabase, uploading_to_supabase
+from rest_framework.decorators import action, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from utils.utils import supabase, uploading_to_supabase, remove_files
+from utils.throttles import FileProcessingAnonThrottle, FileProcessingUserThrottle
 
 
 class FileViewSet(ModelViewSet):
     queryset = File.objects.all()
     serializer_class = FileSerializer
     parser_classes = [MultiPartParser]
+    throttle_classes = [FileProcessingUserThrottle, FileProcessingAnonThrottle]
+    
+    
+    def get_queryset(self):
+        if self.request.user.is_authenticated:
+            return self.queryset.filter(user=self.request.user)
+        return self.queryset
+    
+    def get_permissions(self):
+        if self.action not in ['create']:
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+            
     
     @action(detail=False, methods=['post'], url_path='split-csv')
     def split_csv(self, request):
@@ -61,10 +81,12 @@ class FileViewSet(ModelViewSet):
                     return Response({'error uploading file': str(e)}, status=status.HTTP_400_BAD_REQUEST)
                 
             signed_url = supabase.storage.from_(bucket_name).create_signed_url(supabase_path, 3600)["signedURL"]
-            print(signed_url)
-            r = requests.get(signed_url, stream=True)
-            serializer.save(file=file.name, zipped_file_path=supabase_path, bucket_name=bucket_name)
-            return FileResponse(r.raw, as_attachment=True, filename=f"{base_name}.zip")
+            serializer.save(user=request.user if request.user.is_authenticated else None, file=file.name, zipped_file_path=supabase_path, bucket_name=bucket_name, operation='split')
+            return Response({"download-url": signed_url}, status=status.HTTP_200_OK)
+        
+        #####  Commented out FileResposne
+        #    r = requests.get(signed_url, stream=True)
+        #    return FileResponse(r.raw, as_attachment=True, filename=f"{base_name}.zip")
         except Exception as e:
             print(str(e))
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -101,23 +123,31 @@ class FileViewSet(ModelViewSet):
                     return Response({'error uploading to storage bucket': str(e)}, status=status.HTTP_400_BAD_REQUEST)
                 
             signed_url = supabase.storage.from_(bucket_name).create_signed_url(supabase_path, 3600)["signedURL"]
-            print(f"Downloading from  {signed_url}")
-            r = requests.get(signed_url, stream=True)
-            
+            print(user)
             #save information to db
-            serializer.save(file=file.name, zipped_file_path=supabase_path, bucket_name=bucket_name)
-            return FileResponse(r.raw, as_attachment=True, filename=f"{base_name}.zip")
+            serializer.save(user=request.user if request.user.is_authenticated else None, file=file.name, zipped_file_path=supabase_path, bucket_name=bucket_name, operation='convert')
+            return Response({"download-url": signed_url}, status=status.HTTP_200_OK)
+            #Commented out FileResponse
+            # r = requests.get(signed_url, stream=True)
+            #return FileResponse(r.raw, as_attachment=True, filename=f"{base_name}.zip")
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
     
-    @action(methods=['get'], detail=True, url_path='download-file')
+    @action(methods=['get'], detail=True, url_path='download-file', permission_classes=[IsAuthenticated])
     def download_file(self, request, pk):
-        file = File.objects.get(id=pk)
-        if file:
-            supabase_path = file.zipped_file_path
-            filename = str(file.file).split('.')[0]
-            bucket_name = file.bucket_name
-            signed_url = supabase.storage.from_(bucket_name).create_signed_url(supabase_path, 3600)['signedURL']
-            r = requests.get(signed_url, stream=True)
-            return FileResponse(r.raw, as_attachment=True, filename=f"{filename}.zip")
+        file = self.queryset.get(id=pk)
+        if not file:
+            return Response({'not_found': "The requested resource was not found"}, status= status.HTTP_404_NOT_FOUND)
+        supabase_path = file.zipped_file_path
+        filename = str(file.file).split('.')[0]
+        bucket_name = file.bucket_name
+        signed_url = supabase.storage.from_(bucket_name).create_signed_url(supabase_path, 3600)['signedURL']
+        r = requests.get(signed_url, stream=True)
+        return FileResponse(r.raw, as_attachment=True, filename=f"{filename}.zip")
+    
+    @action(methods=['get'], url_path='cleanup-files', detail=False)
+    def clean_supabase_buckets(self, request):
+        if request.headers.get("X-Cron_Token") != os.getenv("CRON_SECRET_TOKEN"):
+            return HttpResponseForbidden("Forbidden")
+        remove_files()
