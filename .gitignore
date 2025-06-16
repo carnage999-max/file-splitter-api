@@ -4,3 +4,4 @@ uploads/
 */__pycache__/
 __pycache__/
 .env
+staticfiles/

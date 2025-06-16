@@ -1,7 +1,7 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 from rest_framework.response import Response
-from django.http import FileResponse, HttpResponseForbidden
+from django.http import FileResponse, HttpResponseForbidden, HttpResponse
 from .models import File
 from .serializers import FileSerializer, ConvertSerializer
 from utils.utils import CSVSplitter, uploading_to_supabase, create_bucket
@@ -41,6 +41,9 @@ class FileViewSet(ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         file = request.data.get('file')
+        print(f"File size: {file.size}")
+        if file.size >= 52428800:
+            return Response({'error': "can only split files below 50Mb as this is a demo"}, status=status.HTTP_400_BAD_REQUEST)
         base_name = f"{(file.name).split('.')[0]}"
         lines_per_file = request.data.get('lines_per_file')
         size_per_file = request.data.get('size_per_file')
@@ -93,6 +96,8 @@ class FileViewSet(ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         file = request.data.get('file')
+        if file.size >= 52428800:
+            return Response({'error': "can only split files below 50Mb as this is a demo"}, status=status.HTTP_400_BAD_REQUEST)
         base_name = (file.name).split(".")[0]
         output_dir = os.path.join(settings.MEDIA_ROOT, 'convert', str(uuid4()))
         os.makedirs(output_dir, exist_ok=True)
@@ -104,7 +109,7 @@ class FileViewSet(ModelViewSet):
         try:
             convert_instance = CSVSplitter(local_path)
             json_path = convert_instance.convert_csv_to_json(output_dir)
-            print(f"FIle Converted Successfully - JSON Path: {json_path}")
+            print(f"File Converted Successfully - JSON Path: {json_path}")
             os.remove(local_path)
             supabase_path = f"{str(uuid4())}/{base_name}.zip"
             bucket_name = "convert-files"
@@ -148,3 +153,9 @@ class FileViewSet(ModelViewSet):
             return HttpResponseForbidden("Forbidden")
         remove_files()
         return Response({"success": "Files cleaned successfully"}, status=status.HTTP_200_OK)
+    
+    
+def ping_site(request):
+    if not request.method == 'GET':
+        return
+    return HttpResponse("Hello World")
