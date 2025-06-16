@@ -20,14 +20,19 @@ from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseForbidden
+import logging
 
+
+logger = logging.getLogger(__name__)
 
 def index(request):
     return render(request, 'index.html')
 
 def ping_site(request):
     if request.headers.get("X-Cron-Token") != os.getenv("CRON_SECRET_TOKEN"):
-            return HttpResponseForbidden("Forbidden")
+        logger.warning(f"Unauthorized ping attempt from {request.META.get('REMOTE_ADDR')}")
+        return HttpResponseForbidden("Forbidden")
+    logger.info("Ping successful")
     return HttpResponse("Hello World")
 
 urlpatterns = [
