@@ -8,6 +8,6 @@ router.register('', FileViewSet, basename='csv_utils')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('ping', ping_site, name='ping')
+    path('ping/', ping_site, name='ping')
 ]
 
