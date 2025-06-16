@@ -153,9 +153,3 @@ class FileViewSet(ModelViewSet):
             return HttpResponseForbidden("Forbidden")
         remove_files()
         return Response({"success": "Files cleaned successfully"}, status=status.HTTP_200_OK)
-    
-    
-def ping_site(request):
-    if request.headers.get("X-Cron-Token") != os.getenv("CRON_SECRET_TOKEN"):
-            return HttpResponseForbidden("Forbidden")
-    return HttpResponse("Hello World")

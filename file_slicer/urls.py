@@ -18,16 +18,23 @@ from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.shortcuts import render
+from django.http import HttpResponse, HttpResponseForbidden
 
 
 def index(request):
     return render(request, 'index.html')
+
+def ping_site(request):
+    if request.headers.get("X-Cron-Token") != os.getenv("CRON_SECRET_TOKEN"):
+            return HttpResponseForbidden("Forbidden")
+    return HttpResponse("Hello World")
 
 urlpatterns = [
     path("", index, name="index"),
     path('admin/', admin.site.urls),
     path('files/', include("splitfile.urls")),
     path('users/', include("users.urls")),
+    path('ping/', ping_site, name='ping'),
     
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
