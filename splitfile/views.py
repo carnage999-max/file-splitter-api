@@ -156,6 +156,6 @@ class FileViewSet(ModelViewSet):
     
     
 def ping_site(request):
-    if not request.method == 'GET':
-        return
+    if request.headers.get("X-Cron-Token") != os.getenv("CRON_SECRET_TOKEN"):
+            return HttpResponseForbidden("Forbidden")
     return HttpResponse("Hello World")
