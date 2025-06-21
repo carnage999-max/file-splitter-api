@@ -42,8 +42,8 @@ class FileViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         file = request.data.get('file')
         print(f"File size: {file.size}")
-        if file.size >= 52428800:
-            return Response({'error': "can only split files below 50Mb as this is a demo"}, status=status.HTTP_400_BAD_REQUEST)
+        if file.size >= 20971520:
+            return Response({'error': "can only split files below 20Mb as this is a demo"}, status=status.HTTP_400_BAD_REQUEST)
         base_name = f"{(file.name).split('.')[0]}"
         lines_per_file = request.data.get('lines_per_file')
         size_per_file = request.data.get('size_per_file')
@@ -81,7 +81,7 @@ class FileViewSet(ModelViewSet):
                     return Response({'error uploading file': str(e)}, status=status.HTTP_400_BAD_REQUEST)
                 
             signed_url = supabase.storage.from_(bucket_name).create_signed_url(supabase_path, 3600)["signedURL"]
-            serializer.save(user=request.user if request.user.is_authenticated else None, file=file.name, zipped_file_path=supabase_path, bucket_name=bucket_name, operation='split')
+            serializer.save(user=request.user if request.user.is_authenticated else None, id=uuid4(), file=file.name, zipped_file_path=supabase_path, bucket_name=bucket_name, operation='split')
             return Response({"download-url": signed_url}, status=status.HTTP_200_OK)
         
         #####  Commented out FileResposne
