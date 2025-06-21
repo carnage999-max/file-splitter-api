@@ -126,7 +126,7 @@ class FileViewSet(ModelViewSet):
                 
             signed_url = supabase.storage.from_(bucket_name).create_signed_url(supabase_path, 3600)["signedURL"]
             #save information to db
-            serializer.save(user=request.user if request.user.is_authenticated else None, file=file.name, zipped_file_path=supabase_path, bucket_name=bucket_name, operation='convert')
+            serializer.save(user=request.user if request.user.is_authenticated else None, id=uuid4(), file=file.name, zipped_file_path=supabase_path, bucket_name=bucket_name, operation='convert')
             return Response({"download-url": signed_url}, status=status.HTTP_200_OK)
             #Commented out FileResponse
             # r = requests.get(signed_url, stream=True)
